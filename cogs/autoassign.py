@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 
+#Allows for the bot to auto assign the default role in the server to new members
 class AutoAssign(commands.Cog):
 
     def __init__(self,client):

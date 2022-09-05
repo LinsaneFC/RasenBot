@@ -56,8 +56,14 @@ code that can be used in other parts of project
 # async def move(ctx, member : discord.Member, channel : discord.VoiceChannel):
 #     await member.move_to(channel)
 
-
-
+# Checks if the user activity is one of the name of the voice channels
+# @client.command()
+# @commands.has_guild_permissions(move_members=True)
+# async def activity_checker(member, id, activity, voicechannels, general_channel):
+#     for vc in voicechannels:
+#         if str(activity) == str(vc):
+#             print("here")
+#             await member.move_to(vc)
 
 
 
