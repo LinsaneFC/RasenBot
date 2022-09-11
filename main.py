@@ -24,6 +24,7 @@ for file in os.listdir('./cogs'):
         client.load_extension(f'cogs.{file[:-3]}')
 
 
+client.run(token)
 
 '''
 code that can be used in other parts of project
@@ -64,7 +65,3 @@ code that can be used in other parts of project
 #         if str(activity) == str(vc):
 #             print("here")
 #             await member.move_to(vc)
-
-
-
-client.run(token)
