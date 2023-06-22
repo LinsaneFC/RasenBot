@@ -28,10 +28,11 @@ class Greetings(commands.Cog):
 
             message = await channel.send(embed=embed, files=[logo_file, gif_file])
             await message.add_reaction("👍")
+            self.welcome_message_id = message.id
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
-        if payload.channel_id == constantvariables.welcome_channel_id:
+        if payload.channel_id == constantvariables.welcome_channel_id and payload.message_id == self.welcome_message_id:
             if "👍" in str(payload.emoji):
                 guild = self.client.get_guild(payload.guild_id)
                 member = guild.get_member(payload.user_id)
@@ -41,7 +42,7 @@ class Greetings(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
-        if payload.channel_id == constantvariables.welcome_channel_id:
+        if payload.channel_id == constantvariables.welcome_channel_id and payload.message_id == self.welcome_message_id:
             if "👍" in str(payload.emoji):
                 guild = self.client.get_guild(payload.guild_id)
                 member = guild.get_member(payload.user_id)
