@@ -8,6 +8,7 @@ from discord.utils import get
 intents = discord.Intents.default()
 intents.presences = True
 intents.members = True
+intents.reactions = True
  
 client = commands.Bot(command_prefix='$', intents=intents)
 
@@ -22,7 +23,6 @@ async def unload(ctx, extension):
 for file in os.listdir('./cogs'):
     if file.endswith(".py"):
         client.load_extension(f'cogs.{file[:-3]}')
-
 
 client.run(token)
 
