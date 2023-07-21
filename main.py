@@ -40,9 +40,6 @@ code that can be used in other parts of project
 #     role = server.get_role(992232900982476800)
 #     await member.add_roles(role)
 
-# @client.command()
-# async def move(ctx, member : discord.Member, channel : discord.VoiceChannel):
-#     await member.move_to(channel)
  
 # @client.command(pass_context=True)
 # @commands.has_permissions(manage_roles = True)

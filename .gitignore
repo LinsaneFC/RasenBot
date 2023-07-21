@@ -130,3 +130,6 @@ dmypy.json
 
 # Secret token
 secrettoken.py
+
+# Welcome Message ID txt file
+txtfiles/welcome_message_id.txt
