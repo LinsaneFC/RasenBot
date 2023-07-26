@@ -1,5 +1,5 @@
 import discord
-import constantvariables
+from constantvariables import WELCOME_CHANNEL_ID, WELCOME_REACT_EMOJI, VERIFIED_MEMBER_ID
 import os
 from discord.ext import commands
 
@@ -21,7 +21,7 @@ class Greetings(commands.Cog):
 
     @commands.command()
     async def welcome(self, ctx):
-        channel = self.client.get_channel(constantvariables.WELCOME_CHANNEL_ID)
+        channel = self.client.get_channel(WELCOME_CHANNEL_ID)
 
         if channel is not None:
             logo_file = discord.File(os.path.join("media", "rasenbotlogo.jpg"), filename="rasenbotlogo.jpg")
@@ -38,30 +38,30 @@ class Greetings(commands.Cog):
             embed.set_footer(text="If you are curious about RasenBot, please type $help in the bot commands channel for more commands!")
 
             message = await channel.send(embed=embed, files=[logo_file, gif_file])
-            await message.add_reaction(constantvariables.WELCOME_REACT_EMOJI)
+            await message.add_reaction(WELCOME_REACT_EMOJI)
             self.welcome_message_id = message.id
             self.save_welcome_message_id(message.id)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         if payload.message_id == self.welcome_message_id:
-            if payload.channel_id == constantvariables.WELCOME_CHANNEL_ID:
-                if constantvariables.WELCOME_REACT_EMOJI in str(payload.emoji):
+            if payload.channel_id == WELCOME_CHANNEL_ID:
+                if WELCOME_REACT_EMOJI in str(payload.emoji):
                     guild = self.client.get_guild(payload.guild_id)
                     member = guild.get_member(payload.user_id)
                     if member is not None and not member.bot:
-                        role = guild.get_role(constantvariables.VERIFIED_MEMBER_ID)
+                        role = guild.get_role(VERIFIED_MEMBER_ID)
                         await member.add_roles(role)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
         if payload.message_id == self.welcome_message_id:
-            if payload.channel_id == constantvariables.WELCOME_CHANNEL_ID:
-                if constantvariables.WELCOME_REACT_EMOJI in str(payload.emoji):
+            if payload.channel_id == WELCOME_CHANNEL_ID:
+                if WELCOME_REACT_EMOJI in str(payload.emoji):
                     guild = self.client.get_guild(payload.guild_id)
                     member = guild.get_member(payload.user_id)
                     if member is not None and not member.bot:
-                        role = guild.get_role(constantvariables.VERIFIED_MEMBER_ID)
+                        role = guild.get_role(VERIFIED_MEMBER_ID)
                         await member.remove_roles(role)
 
 
