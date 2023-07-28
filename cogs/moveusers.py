@@ -3,11 +3,12 @@ from discord.ext import commands
 
 # Command that moves one user in a voice channel into another voice channel specified by the user
 class MoveUsers(commands.Cog):
-
+# Function dedicated to moving users from one voice channel to another
+# based on the game they are playing, server role, afk status, etc.
     @commands.command()
     async def move(self, ctx, member : discord.Member, channel : discord.VoiceChannel):
         await member.move_to(channel)
-    
+
 
 def setup(client):
     client.add_cog(MoveUsers(client))

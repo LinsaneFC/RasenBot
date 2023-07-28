@@ -3,22 +3,26 @@ from constantvariables import WELCOME_CHANNEL_ID, WELCOME_REACT_EMOJI, VERIFIED_
 import os
 from discord.ext import commands
 
+# Class dedicated to greeting new members when joining the server
 class Greetings(commands.Cog):
+
+# Constructor that assigns the welcome message to the specific new member with their username
     def __init__(self, client):
         self.client = client
         self.welcome_message_id = self.load_welcome_message_id()
-
+# Function responsible for loading and returning the welcome message
     def load_welcome_message_id(self):
         try:
             with open("txtfiles/welcome_message_id.txt", "r") as file:
                 return int(file.read())
         except FileNotFoundError:
             return None
-
+# Function responsible for retaining the welcome message specific to the user
     def save_welcome_message_id(self, message_id):
         with open("txtfiles/welcome_message_id.txt", "w") as file:
             file.write(str(message_id))
-
+# Main function responsible for running the welcome message on user join where they must react to a
+# terms and conditions message in order to join the server. As well as a guide to RasenBot.
     @commands.command()
     async def welcome(self, ctx):
         channel = self.client.get_channel(WELCOME_CHANNEL_ID)
@@ -41,7 +45,7 @@ class Greetings(commands.Cog):
             await message.add_reaction(WELCOME_REACT_EMOJI)
             self.welcome_message_id = message.id
             self.save_welcome_message_id(message.id)
-
+# Main function responsible for giving a newcomer a role once they react to the terms and conditions.
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         if payload.message_id == self.welcome_message_id:
@@ -52,7 +56,8 @@ class Greetings(commands.Cog):
                     if member is not None and not member.bot:
                         role = guild.get_role(VERIFIED_MEMBER_ID)
                         await member.add_roles(role)
-
+# Main function that is responsible for removing the role of the user if they are to remove their reaction to
+# the terms and conditions thus violating the rules and kicking the user from the server.
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
         if payload.message_id == self.welcome_message_id:
