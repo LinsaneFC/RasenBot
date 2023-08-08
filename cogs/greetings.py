@@ -10,6 +10,7 @@ class Greetings(commands.Cog):
     def __init__(self, client):
         self.client = client
         self.welcome_message_id = self.load_welcome_message_id()
+
 # Helper function responsible for loading and returning the welcome message
     def load_welcome_message_id(self):
         try:
@@ -17,11 +18,14 @@ class Greetings(commands.Cog):
                 return int(file.read())
         except FileNotFoundError:
             return None
-# Helper function responsible for retaining the welcome message specific to the user
+
+# Helper function responsible for retaining the welcome message id specific to the user.
+# As well as storing the id to be loaded later if the bot goes offline in the future.
     def save_welcome_message_id(self, message_id):
         with open("txtfiles/welcome_message_id.txt", "w") as file:
             file.write(str(message_id))
-# Command function responsible for running the welcome message on user join where they must react to a
+
+# Command function responsible for sending the welcome message on user join where they must react to a
 # terms and conditions message in order to join the server. As well as a guide to RasenBot.
     @commands.command()
     async def welcome(self, ctx):
@@ -45,6 +49,7 @@ class Greetings(commands.Cog):
             await message.add_reaction(WELCOME_REACT_EMOJI)
             self.welcome_message_id = message.id
             self.save_welcome_message_id(message.id)
+
 # Listener function responsible for giving a newcomer a role once they react to the terms and conditions.
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
@@ -56,6 +61,7 @@ class Greetings(commands.Cog):
                     if member is not None and not member.bot:
                         role = guild.get_role(VERIFIED_MEMBER_ID)
                         await member.add_roles(role)
+
 # Listener function that is responsible for removing the role of the user if they are to remove their reaction to
 # the terms and conditions thus violating the rules.
     @commands.Cog.listener()
