@@ -3,10 +3,10 @@ from constantvariables import WELCOME_CHANNEL_ID, WELCOME_REACT_EMOJI, VERIFIED_
 import os
 from discord.ext import commands
 
-# Class dedicated to greeting new members when joining the server
+# Class dedicated to greeting new members when joining the server.
 class Greetings(commands.Cog):
 
-# Constructor that assigns the welcome message to the specific new member with their username
+# Constructor that assigns the welcome message to the specific new member with their username.
     def __init__(self, client):
         self.client = client
         self.welcome_message_id = self.load_welcome_message_id()
@@ -19,14 +19,13 @@ class Greetings(commands.Cog):
         except FileNotFoundError:
             return None
 
-# Helper function responsible for retaining the welcome message id specific to the user.
-# As well as storing the id to be loaded later if the bot goes offline in the future.
+# Helper function responsible for storing the welcome message id to be loaded later if the bot goes offline in the future.
     def save_welcome_message_id(self, message_id):
         with open("txtfiles/welcome_message_id.txt", "w") as file:
             file.write(str(message_id))
 
 # Command function responsible for sending the welcome message on user join where they must react to a
-# terms and conditions message in order to join the server. As well as a guide to RasenBot.
+# terms and conditions message in order to join the server. This message also contains a guide to RasenBot.
     @commands.command()
     async def welcome(self, ctx):
         channel = self.client.get_channel(WELCOME_CHANNEL_ID)
