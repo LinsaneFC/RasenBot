@@ -11,7 +11,7 @@ class Greetings(commands.Cog):
         self.client = client
         self.welcome_message_id = self.load_welcome_message_id()
 
-# Helper function responsible for loading and returning the welcome message
+# Helper function responsible for loading and returning the welcome message.
     def load_welcome_message_id(self):
         try:
             with open("txtfiles/welcome_message_id.txt", "r") as file:
