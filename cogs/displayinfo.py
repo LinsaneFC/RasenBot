@@ -105,17 +105,17 @@ class DisplayInfo(commands.Cog):
 
     async def timed_update(self):
         while len(self.members_online) != 0:
-            await asyncio.sleep(300)
+            await asyncio.sleep(20)
             for member in self.members_online:
                 string_id = str(member.id)
-                if string_id in self.timers:
-                    for date, activities in self.timers[string_id].items():
-                        for activity, info in activities.items():
-                            if info["startTime"] != None:
-                                currentStartTime = self.timers[string_id][self.current_date][member.activity.name]["startTime"]
-                                playTime = datetime.now() - currentStartTime 
-                                self.timers[string_id][self.current_date][activity]["totalTime"] = self.timers[string_id][self.current_date][activity].get("totalTime", 0) + playTime.total_seconds()
-                                self.timers[string_id][self.current_date][activity]["startTime"] = datetime.now()
+                if string_id in self.timers and self.current_date in self.timers[string_id]:
+                    for activity, info in self.timers[string_id][self.current_date].items():
+                        if info["startTime"] != None:
+                                if member.activity.name in self.timers[string_id][self.current_date]:
+                                    currentStartTime = self.timers[string_id][self.current_date][member.activity.name]["startTime"]
+                                    playTime = datetime.now() - currentStartTime 
+                                    self.timers[string_id][self.current_date][activity]["totalTime"] = self.timers[string_id][self.current_date][activity].get("totalTime", 0) + playTime.total_seconds()
+                                    self.timers[string_id][self.current_date][activity]["startTime"] = datetime.now()
             
             print("timed update:", self.timers)
             self.current_collection.replace_one({}, self.timers) 
