@@ -105,7 +105,7 @@ class DisplayInfo(commands.Cog):
 
     async def timed_update(self):
         while len(self.members_online) != 0:
-            await asyncio.sleep(20)
+            await asyncio.sleep(300)
             for member in self.members_online:
                 string_id = str(member.id)
                 if string_id in self.timers and self.current_date in self.timers[string_id]:
