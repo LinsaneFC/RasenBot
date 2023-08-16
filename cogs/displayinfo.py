@@ -103,30 +103,35 @@ class DisplayInfo(commands.Cog):
                         print("end:", self.timers) # printing the dictionary to see the updates after an activity is ended
                         self.current_collection.replace_one({}, self.timers) # Update the MongoDB collection with the updated activity data(self.timers)
 
+    async def update_now(self, string_id):
+        if string_id in self.timers and self.current_date in self.timers[string_id]:
+            for activity, info in self.timers[string_id][self.current_date].items():
+                if info["startTime"] != None:
+                     if activity in self.timers[string_id][self.current_date]:
+                        currentStartTime = self.timers[string_id][self.current_date][activity]["startTime"]
+                        playTime = datetime.now() - currentStartTime 
+                        self.timers[string_id][self.current_date][activity]["totalTime"] = self.timers[string_id][self.current_date][activity].get("totalTime", 0) + playTime.total_seconds()
+                        self.timers[string_id][self.current_date][activity]["startTime"] = datetime.now()
+
     async def timed_update(self):
         while len(self.members_online) != 0:
             await asyncio.sleep(300)
             for member in self.members_online:
                 string_id = str(member.id)
-                if string_id in self.timers and self.current_date in self.timers[string_id]:
-                    for activity, info in self.timers[string_id][self.current_date].items():
-                        if info["startTime"] != None:
-                                if member.activity.name in self.timers[string_id][self.current_date]:
-                                    currentStartTime = self.timers[string_id][self.current_date][member.activity.name]["startTime"]
-                                    playTime = datetime.now() - currentStartTime 
-                                    self.timers[string_id][self.current_date][activity]["totalTime"] = self.timers[string_id][self.current_date][activity].get("totalTime", 0) + playTime.total_seconds()
-                                    self.timers[string_id][self.current_date][activity]["startTime"] = datetime.now()
+                await self.update_now(string_id)
             
             print("timed update:", self.timers)
-            self.current_collection.replace_one({}, self.timers) 
+            self.current_collection.replace_one({}, self.timers)
                         
             
 
     # This is a Discord bot command that retrieves and displays activity time information for a given member.
     @commands.command()
     async def get_info(self, member):
-        # self.current_collection.replace_one({}, self.timers)
         string_id = str(member.author.id)
+        await self.update_now(string_id)
+        print("get info update:", self.timers)
+        self.current_collection.replace_one({}, self.timers) 
         if string_id in self.timers:
             channel = member.channel
             user = await self.bot.fetch_user(string_id)
