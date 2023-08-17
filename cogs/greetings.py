@@ -5,10 +5,8 @@ from discord.ext import commands
 
 # Class dedicated to greeting new members when joining the server.
 class Greetings(commands.Cog):
-
-# Constructor that assigns the welcome message to the specific new member with their username.
-    def __init__(self, client):
-        self.client = client
+    def __init__(self, bot):
+        self.bot = bot
         self.welcome_message_id = self.load_welcome_message_id()
 
 # Helper function responsible for loading and returning the welcome message.
@@ -28,7 +26,7 @@ class Greetings(commands.Cog):
 # terms and conditions message in order to join the server. This message also contains a guide to RasenBot.
     @commands.command()
     async def welcome(self, ctx):
-        channel = self.client.get_channel(WELCOME_CHANNEL_ID)
+        channel = self.bot.get_channel(WELCOME_CHANNEL_ID)
 
         if channel is not None:
             logo_file = discord.File(os.path.join("media", "rasenbotlogo.jpg"), filename="rasenbotlogo.jpg")
@@ -55,9 +53,9 @@ class Greetings(commands.Cog):
         if payload.message_id == self.welcome_message_id:
             if payload.channel_id == WELCOME_CHANNEL_ID:
                 if WELCOME_REACT_EMOJI in str(payload.emoji):
-                    guild = self.client.get_guild(payload.guild_id)
+                    guild = self.bot.get_guild(payload.guild_id)
                     member = guild.get_member(payload.user_id)
-                    if member is not None and not member.bot:
+                    if member and not member.bot:
                         role = guild.get_role(VERIFIED_MEMBER_ID)
                         await member.add_roles(role)
 
@@ -68,12 +66,12 @@ class Greetings(commands.Cog):
         if payload.message_id == self.welcome_message_id:
             if payload.channel_id == WELCOME_CHANNEL_ID:
                 if WELCOME_REACT_EMOJI in str(payload.emoji):
-                    guild = self.client.get_guild(payload.guild_id)
+                    guild = self.bot.get_guild(payload.guild_id)
                     member = guild.get_member(payload.user_id)
-                    if member is not None and not member.bot:
+                    if member and not member.bot:
                         role = guild.get_role(VERIFIED_MEMBER_ID)
                         await member.remove_roles(role)
 
 
-def setup(client):
-    client.add_cog(Greetings(client))
+def setup(bot):
+    bot.add_cog(Greetings(bot))
