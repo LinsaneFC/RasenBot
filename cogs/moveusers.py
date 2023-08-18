@@ -54,20 +54,21 @@ class MoveUsers(commands.Cog):
     # Command function that auto moves users to various different channels depending on activities of all users in all voice channels
     @commands.command()
     async def automove(self, ctx):
-        if not self.check_required_channels(ctx):
-            try:
-                with open("constantvariables.py", "r+") as file:
-                    content = file.read()
-                    updated_content = content.replace("AUTO_MOVE_FLAG = True", "AUTO_MOVE_FLAG = False")
-                    file.seek(0)
-                    file.write(updated_content)
-                    file.truncate()
-                print("Required channels for using auto move error. Set AUTO_MOVE_FLAG in constantvariables.py to False")
-                return
-            except Exception as e:
-                print("Error updating AUTO_MOVE_FLAG:", e)
-
         if AUTO_MOVE_FLAG:
+            if not self.check_required_channels(ctx):
+                try:
+                    with open("constantvariables.py", "r+") as file:
+                        content = file.read()
+                        updated_content = content.replace("AUTO_MOVE_FLAG = True", "AUTO_MOVE_FLAG = False")
+                        file.seek(0)
+                        file.write(updated_content)
+                        file.truncate()
+                    print("Required channels for using auto move error. Set AUTO_MOVE_FLAG in constantvariables.py to False")
+                    return
+                except Exception as e:
+                    print("Error updating AUTO_MOVE_FLAG:", e)
+                    return
+                
             voice_channels = ctx.guild.voice_channels
             # Group users by their activities in voice channels
             voice_channel_groups = {}
