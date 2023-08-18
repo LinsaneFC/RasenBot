@@ -1,5 +1,4 @@
 import discord
-import constantvariables
 import mongoDB
 from discord.ext import commands
 from discord.ext import tasks
@@ -41,8 +40,8 @@ class DisplayInfo(commands.Cog):
         self.timed_task = None
     
     '''
-    Sample dictionary layout: {'_id': ObjectId('64d6c8e896c982ece6550d23'), '326586435958341636': {'2023-08-14': { 'Activity 1': {'totalTime': [], 'startTime': []}, 'Activity 2': {'totalTime': [], 'startTime': []}}}, 
-    '2023-08-15': {'Activity 1': {'totalTime': [], 'startTime': []}
+    Sample dictionary layout for self.timers: { "user_id" : { 'date1' : { 'Activity1': {'totalTime': [], 'startTime': []}, 'Activity2': {'totalTime': [], 'startTime': []}}}, 
+    'date2': {'Activity1': {'totalTime': [], 'startTime': []}}}
     '''
     
     @commands.Cog.listener()
@@ -50,7 +49,7 @@ class DisplayInfo(commands.Cog):
         for guild in self.bot.guilds:
             for member in guild.members:
                 if member.status == discord.Status.online and member.activity:
-                    self.members_online.add(member)
+                    self.members_online.add(member.id)
                     after_string_id = str(member.id)
                     if after_string_id not in self.timers:
                         self.timers[after_string_id] = {} # If the member is not already tracked, add them
@@ -78,21 +77,15 @@ class DisplayInfo(commands.Cog):
         if mem_before.activity and mem_before.activity == mem_after.activity:
             return
 
-        if mem_after.status == discord.Status.online and mem_after.activity: #if member is online and in an activity
-            self.members_online.add(mem_after)
-            if self.timed_task == None: #if task is finished create new task
-                self.timed_task = asyncio.create_task(self.timed_update())
-            print("added:", mem_after.name)
-        
-        elif (mem_before.activity and not mem_after.activity) or (mem_before.status != mem_after.status and mem_after.status == discord.Status.offline):
-            self.members_online.remove(mem_before)
-            print("removed:", mem_before.name)
-            if len(self.members_online) <= 0:
-                self.timed_task.cancel()    
-                self.timed_task = None
         
         # Track activity updates for members
-        if not mem_before.activity and mem_after.activity: # activity starts/ongoing
+        if mem_after.status == discord.Status.online and (not mem_before.activity and mem_after.activity): # activity starts/ongoing
+            if mem_after.id not in self.members_online:
+                self.members_online.add(mem_after.id)
+                if self.timed_task == None: #if task is finished create new task
+                    self.timed_task = asyncio.create_task(self.timed_update())
+                print("added:", mem_after.name)
+
             after_string_id = str(mem_after.id)
             if after_string_id not in self.timers:
                 self.timers[after_string_id] = {} # If the member is not already tracked, add them
@@ -106,6 +99,13 @@ class DisplayInfo(commands.Cog):
             self.timers[after_string_id][self.current_date][mem_after.activity.name]["startTime"] = datetime.now() # Record the start time of the member's current activity
             print("start:", self.timers)
         elif (mem_before.activity and not mem_after.activity) or (mem_before.status != mem_after.status and mem_after.status == discord.Status.offline): # activity stopped or member goes offline
+            if mem_before.id in self.members_online:
+                self.members_online.remove(mem_before.id)
+                print("removed:", mem_before.name)
+                if len(self.members_online) <= 0:
+                    self.timed_task.cancel()    
+                    self.timed_task = None
+
             before_string_id = str(mem_before.id)
             if before_string_id in self.timers:
                 if self.current_date in self.timers[before_string_id]:
@@ -131,10 +131,10 @@ class DisplayInfo(commands.Cog):
         return updated
 
     async def timed_update(self):
-        while len(self.members_online) != 0:
+        while len(self.members_online) > 0:
             await asyncio.sleep(300)
             for member in self.members_online:
-                string_id = str(member.id)
+                string_id = str(member)
                 update_success = await self.update_now(string_id)
             
             print("timed update:", self.timers)
