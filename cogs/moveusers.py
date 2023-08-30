@@ -26,12 +26,12 @@ class MoveUsers(commands.Cog):
 
 
     # Helper function to check if all required channels for automove are fulfilled
-    def _check_required_channels(self, ctx):
+    def _check_required_channels(self):
         for req_channel in ["Lounge", "Study", "General", "Cinema"]:
             if req_channel not in DIFFERENT_NAME_CHANNELS:
                 return False
-        for channel_name in DIFFERENT_NAME_CHANNELS.values():
-            channel = discord.utils.get(ctx.guild.voice_channels, name=channel_name)
+        for channel_id in DIFFERENT_NAME_CHANNELS.values():
+            channel = self.bot.get_channel(channel_id)
             if not channel:
                 return False
         return True
@@ -54,6 +54,19 @@ class MoveUsers(commands.Cog):
     # Command function that auto moves users to various different channels depending on activities of all users in all voice channels
     @commands.command()
     async def automove(self, ctx):
+        if not self._check_required_channels():
+            try:
+                with open("constantvariables.py", "r+") as file:
+                    content = file.read()
+                    updated_content = content.replace("AUTO_MOVE_FLAG = True", "AUTO_MOVE_FLAG = False")
+                    file.seek(0)
+                    file.write(updated_content)
+                    file.truncate()
+                print("Required channels for using auto move error. Set AUTO_MOVE_FLAG in constantvariables.py to False")
+                return
+            except Exception as e:
+                print("Error updating AUTO_MOVE_FLAG:", e)
+
         if AUTO_MOVE_FLAG:
             if not self.check_required_channels(ctx):
                 try:
