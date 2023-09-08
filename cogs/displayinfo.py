@@ -55,8 +55,6 @@ class DisplayInfo(commands.Cog):
                     await self._update_now(member)
                    
 
-        # print(self.members_online)
-
         if len(self.members_online):
             self.timed_task = asyncio.create_task(self._timed_update()) #start timed_update once bot goes online if a member is online
 
@@ -115,11 +113,9 @@ class DisplayInfo(commands.Cog):
                 member = guild.get_member(memberID)
                 update_success = await self._update_now(member) #update all with current time
 
-            print(self.timers)
             ids = [id for id, dates in self.timers.items()][1:]
 
             for id in ids: #for loop to delete previous day startTime
-                print(id)
                 string_id = str(id)
                 if string_id in self.timers and self.current_date in self.timers[string_id]:
                     for activity, info in self.timers[string_id][self.current_date].items():
