@@ -82,7 +82,6 @@ class DisplayInfo(commands.Cog):
                 }
             self.timers[string_id][self.current_date][member.activity.name]["startTime"] = datetime.now() # Record the start time of the member's current activity
             
-
         return updated
     
     #This function periodically updates the activities of members that are online and in an activity.
@@ -162,7 +161,7 @@ class DisplayInfo(commands.Cog):
             if mem_before.id in self.members_online:
                 self.members_online.pop(mem_before.id)
                 print("removed:", mem_before.name)
-                if len(self.members_online) <= 0:
+                if len(self.members_online) <= 0: #cancel the timed_task if no one is online and in an activity
                     self.timed_task.cancel()    
                     self.timed_task = None
                     
@@ -181,13 +180,20 @@ class DisplayInfo(commands.Cog):
     # This is a Discord bot command that retrieves and displays activity time information for a given member.
     @commands.command()
     async def get_info(self, ctx):
+        # Get the guild and necessary member information
         guild = self.bot.get_guild(ctx.guild.id)
         string_id = str(ctx.author.id)
         member = guild.get_member(ctx.author.id)
 
+
+        # Update the member's information
         update_success = await self._update_now(member)
-        print("get info update:", self.timers)
-        self.current_collection.replace_one({}, self.timers) 
+
+        # print("get info update:", self.timers)
+
+        # Replace the current collection with updated timers
+        self.current_collection.replace_one({}, self.timers)
+
         if string_id in self.timers:
             channel = ctx.channel
             user = await self.bot.fetch_user(string_id)
@@ -195,6 +201,8 @@ class DisplayInfo(commands.Cog):
                 title = f"{user.name}'s Time Information",
                 color = discord.Color.blue()
             )
+
+            # Loop through the timers and activities to create fields in the embed
             for date, activities in self.timers[string_id].items():
                 temp_string = " "
                 for activity, time in activities.items():
