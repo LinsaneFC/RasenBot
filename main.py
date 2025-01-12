@@ -1,30 +1,32 @@
-import discord
 import os
+import asyncio
+from discord import Intents
 from discord.ext import commands
 from secrettoken import token
-from discord.ext.commands import has_permissions, MissingPermissions
-from discord.utils import get
 
-intents = discord.Intents.default()
+intents = Intents.default()
 intents.presences = True
 intents.members = True
 intents.reactions = True
+intents.message_content = True
  
 bot = commands.Bot(command_prefix='$', intents=intents)
 
-@bot.command()
-async def load(ctx, extension):
-    bot.load_extension(f'cogs.{extension}')
+@bot.event
+async def on_ready():
+    print("Rasenbot is running...")
 
-@bot.command()
-async def unload(ctx, extension):
-    bot.unload_extension(f'cogs.{extension}')
+async def load_extensions():
+    for file in os.listdir('./cogs'):
+        if file.endswith(".py"):
+            await bot.load_extension(f'cogs.{file[:-3]}')
 
-for file in os.listdir('./cogs'):
-    if file.endswith(".py"):
-        bot.load_extension(f'cogs.{file[:-3]}')
+async def main():
+    async with bot:
+        await load_extensions()
+        await bot.start(token)
 
-bot.run(token)
+asyncio.run(main())
 
 '''
 code that can be used in other parts of project
