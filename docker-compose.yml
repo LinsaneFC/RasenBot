@@ -1,0 +1,14 @@
+services:
+  # First container being created for application runtime
+  bot:
+    build: # Build this container following Dockerfile under ./bot
+      context: ./bot
+      dockerfile: Dockerfile
+    environment: # Set environment variables in container based on .env
+      - RASENBOT_TOKEN=${RASENBOT_TOKEN}
+    restart: unless-stopped
+    develop: # Used for ease of development to automatically sync files/restart container
+      watch:
+        - action: sync+restart
+          path: ./bot
+          target: /app

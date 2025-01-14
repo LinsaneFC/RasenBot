@@ -1,5 +1,5 @@
 import discord
-from constantvariables import WELCOME_CHANNEL_ID, WELCOME_REACT_EMOJI, VERIFIED_MEMBER_ID
+from constants import WELCOME_CHANNEL_ID, WELCOME_REACT_EMOJI, VERIFIED_MEMBER_ID
 import os
 from discord.ext import commands
 

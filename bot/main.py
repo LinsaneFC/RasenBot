@@ -1,8 +1,10 @@
 import os
 import asyncio
+from dotenv import load_dotenv
 from discord import Intents
 from discord.ext import commands
-from secrettoken import token
+
+load_dotenv()
 
 intents = Intents.default()
 intents.presences = True
@@ -22,6 +24,7 @@ async def load_extensions():
             await bot.load_extension(f'cogs.{file[:-3]}')
 
 async def main():
+    token = os.getenv("RASENBOT_TOKEN")
     async with bot:
         await load_extensions()
         await bot.start(token)

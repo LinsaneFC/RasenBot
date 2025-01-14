@@ -1,21 +1,22 @@
 import discord
 from discord.ext import commands
+from constants import DIFFERENT_NAME_CHANNELS, AUTO_MOVE_FLAG
 from difflib import SequenceMatcher
-from constantvariables import DIFFERENT_NAME_CHANNELS, AUTO_MOVE_FLAG
 
 class MoveUsers(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
     
     # Helper function to find similar channel name
-    def _find_similar_channel(channel_name, voice_channels, threshold=0.5):
+    def _find_similar_channel(self, curr_channel_name, voice_channels, threshold=0.5):
         max_channel = None
         max_score = 0
-        channel_name_lower = channel_name.lower()
+        curr_channel_name = curr_channel_name.lower()
         
         for channel in voice_channels:
-            channel_lower = channel.lower()
-            similarity_score = SequenceMatcher(None, channel_name_lower, channel_lower).ratio()
+            channel_name = channel.name.lower()
+            print(channel_name)
+            similarity_score = SequenceMatcher(None, curr_channel_name, channel_name).ratio()
             if similarity_score > max_score:
                 max_score = similarity_score
                 max_channel = channel
@@ -57,13 +58,13 @@ class MoveUsers(commands.Cog):
         if AUTO_MOVE_FLAG:
             if not self.check_required_channels(ctx):
                 try:
-                    with open("constantvariables.py", "r+") as file:
+                    with open("constants.py", "r+") as file:
                         content = file.read()
                         updated_content = content.replace("AUTO_MOVE_FLAG = True", "AUTO_MOVE_FLAG = False")
                         file.seek(0)
                         file.write(updated_content)
                         file.truncate()
-                    print("Required channels for using auto move error. Set AUTO_MOVE_FLAG in constantvariables.py to False")
+                    print("Required channels for using auto move error. Set AUTO_MOVE_FLAG in constants.py to False")
                     return
                 except Exception as e:
                     print("Error updating AUTO_MOVE_FLAG:", e)
@@ -140,7 +141,7 @@ class MoveUsers(commands.Cog):
 
 
         else:
-            print("Auto move flag set to False. Set to True in constantvariables.py if you want to use auto move ability")    
+            print("Auto move flag set to False. Set to True in constants.py if you want to use auto move ability")    
 
                 
 
