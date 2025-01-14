@@ -1,10 +1,8 @@
 import discord
-import constantvariables
 import mongoDB
 from discord.ext import commands
 from discord.ext import tasks
-from datetime import datetime
-from datetime import date
+from datetime import datetime, date, time
 import datetime as dt
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
@@ -33,85 +31,179 @@ class DisplayInfo(commands.Cog):
 
     def __init__(self,bot):
         self.bot = bot
-        self.timers = {}
-        self.current_collection = ""
-        self.current_guild_name = ""
+        self.current_collection = db["UserTracking"] # TODO: Move this secrets file
+        self.timers = self.current_collection.find_one() # Gets document from collection.
         self.current_date = str(date.today())
+        self.members_online = {}
+        self.timed_task = None
+    
+    '''
+    Sample dictionary layout for self.timers: { "user_id" : { 'date1' : { 'Activity1': {'totalTime': [], 'startTime': []}, 'Activity2': {'totalTime': [], 'startTime': []}}, 
+                                                              'date2' : { 'Activity1': {'totalTime': [], 'startTime': []}}}
+                                                "user_id2" : { 'date1' : { 'Activity1': {'totalTime': [], 'startTime': []}}
+                                                              'date2' : {'Activity1': {'totalTime': [], 'startTime': []}}}}
+    '''
+    
+    @commands.Cog.listener()
+    async def on_ready(self):
+        await self._next_day_check()
+        for guild in self.bot.guilds:
+            for member in guild.members:
+                if member.status == discord.Status.online and member.activity:
+                    self.members_online[member.id] = guild.id
+                    await self._reset_start(member)
+                    await self._update_now(member)
+                   
+
+        if len(self.members_online):
+            self.timed_task = asyncio.create_task(self._timed_update()) #start timed_update once bot goes online if a member is online
+
+    async def _update_now(self, member: discord.Member):
+        updated = False
+        string_id = str(member.id)
+        if string_id in self.timers and self.current_date in self.timers[string_id]:
+            for activity, info in self.timers[string_id][self.current_date].items():
+                if info["startTime"] != None: #update the time for activities that have a startTime
+                    updated = True
+                    currentStartTime = self.timers[string_id][self.current_date][activity]["startTime"]
+                    playTime = datetime.now() - currentStartTime 
+                    self.timers[string_id][self.current_date][activity]["totalTime"] = self.timers[string_id][self.current_date][activity].get("totalTime", 0) + playTime.total_seconds()
+                    self.timers[string_id][self.current_date][activity]["startTime"] = datetime.now()
+
+        if not updated:
+            if string_id not in self.timers:
+                self.timers[string_id] = {} # If the member is not already tracked, add them
+            if self.current_date not in self.timers[string_id]:
+                self.timers[string_id][self.current_date] = {} # If the current date is not present in the member's dictionary, add it
+            if member.activity.name not in self.timers[string_id][self.current_date]: # If the member's current activity/game/status is not present, add it with initial values
+                self.timers[string_id][self.current_date][member.activity.name] = {
+                    "totalTime" : 0, 
+                    "startTime" : 0,
+                }
+            self.timers[string_id][self.current_date][member.activity.name]["startTime"] = datetime.now() # Record the start time of the member's current activity
+            
+        return updated
+    
+    #This function periodically updates the activities of members that are online and in an activity.
+    async def _timed_update(self):
+        while len(self.members_online) > 0:
+            await asyncio.sleep(300)
+            for memberID, guildID in self.members_online.items():
+                guild = self.bot.get_guild(guildID)
+                member = guild.get_member(memberID)
+                update_success = await self._update_now(member)
+            
+            print("timed update:", self.timers)
+            self.current_collection.replace_one({}, self.timers)
+
+    #This function resets all the startTimes of a member
+    async def _reset_start(self, member):
+        string_id = str(member.id)
+        if string_id in self.timers and self.current_date in self.timers[string_id]:
+            for activity, info in self.timers[string_id][self.current_date].items():
+                info["startTime"] = None
+
+
+    async def _next_day_check(self):
+        while True:
+            await asyncio.sleep(self._seconds_until())  # Will sleep until clock says 11:59:00
+            for memberID, guildID in self.members_online.items():
+                guild = self.bot.get_guild(guildID)
+                member = guild.get_member(memberID)
+                update_success = await self._update_now(member) #update all with current time
+
+            ids = [id for id, dates in self.timers.items()][1:]
+
+            for id in ids: #for loop to delete previous day startTime
+                string_id = str(id)
+                if string_id in self.timers and self.current_date in self.timers[string_id]:
+                    for activity, info in self.timers[string_id][self.current_date].items():
+                        del info["startTime"]
+
+            await asyncio.sleep(60) #Sleep till the next day
+            if str(date.today() - dt.timedelta(days=1)) == self.current_date: #check if it is the next day  
+                self.current_date = str(date.today())
+                for memberID, guildID in self.members_online.items():
+                    guild = self.bot.get_guild(guildID)
+                    member = guild.get_member(memberID)
+                    update_success = await self._update_now(member)
+                
+                self.current_collection.replace_one({}, self.timers)
+
+    def _seconds_until(self): #finds the seconds needed to 11:59 of that day
+        now = datetime.now()
+        curr = datetime.strptime(self.current_date, "%Y-%m-%d")
+        midnight = datetime(curr.year, curr.month, curr.day, 23,59)
+
+        return (midnight - now).total_seconds()
+    
         
     # The 'mem_before' parameter represents the member's previous state, and 'mem_after' represents the current state.
     @commands.Cog.listener()
     async def on_member_update(self, mem_before:discord.Member, mem_after:discord.Member):
         if mem_before.activity and mem_before.activity == mem_after.activity:
             return
-    
-        if self.current_guild_name != mem_before.guild.name:
-            if mem_before.guild.name not in db.list_collection_names():
-                newCollection = db[mem_before.guild.name]  # If the collection doesn't exist, create a new one for the guild/server
-                self.current_guild_name = mem_before.guild.name
-                self.current_collection = newCollection               
-                newCollection.insert_one({}) # Create a new blank document in the new Collection
-                self.timers = self.current_collection.find_one() # Load blank document from the MongoDB collection
-            else:
-                self.current_collection = db[mem_before.guild.name] # If the collection exists, get the existing collection for the guild
-                self.current_guild_name = mem_before.guild.name
-                self.timers = self.current_collection.find_one() # Load existing document from the MongoDB collection
-        
+
         # Track activity updates for members
-        if not mem_before.activity and mem_after.activity: # activity starts/ongoing
-            if mem_after.name not in self.timers:
-                self.timers[mem_after.name] = {} # If the member is not already tracked, add them
-            if self.current_date not in self.timers[mem_after.name]:
-                self.timers[mem_after.name][self.current_date] = {} # If the current date is not present in the member's dictionary, add it
-            if mem_after.activity.name not in self.timers[mem_after.name][self.current_date]: # If the member's current activity/game/status is not present, add it with initial values
-                self.timers[mem_after.name][self.current_date][mem_after.activity.name] = {
-                    "totalTime" : 0, 
-                    "startTime" : 0,
-                    "updateTask" : None,
-                }
-            self.timers[mem_after.name][self.current_date][mem_after.activity.name]["startTime"] = datetime.now() # Record the start time of the member's current activity
-            print("start:", self.timers)
-            self.timers[mem_after.name][self.current_date][mem_after.activity.name]["updateTask"] = asyncio.create_task(self.timed_update(mem_before, mem_after))
-        elif (mem_before.activity and not mem_after.activity) or (mem_before.status != mem_after.status and mem_after.status == discord.Status.offline): # activity stopped or member
-            if mem_before.name in self.timers:
-                if self.current_date in self.timers[mem_before.name]:
-                    if mem_before.activity is not None and mem_before.activity.name in self.timers[mem_before.name][self.current_date]:
-                        if self.timers[mem_before.name][self.current_date][mem_before.activity.name]["updateTask"]:
-                            self.timers[mem_before.name][self.current_date][mem_before.activity.name]["updateTask"].cancel()
-                            try:
-                                await self.timers[mem_before.name][self.current_date][mem_before.activity.name]["updateTask"]
-                            except asyncio.CancelledError:
-                                print("task is now cancelled")
-                        self.timers[mem_before.name][self.current_date][mem_before.activity.name]["updateTask"] = None
+        if mem_after.status == discord.Status.online and (not mem_before.activity and mem_after.activity): # activity starts/ongoing
+            if mem_after.id not in self.members_online:
+                self.members_online[mem_after.id] = mem_after.guild.id
+                await self._reset_start(mem_after)
 
-                        currentStartTime = self.timers[mem_before.name][self.current_date][mem_before.activity.name]["startTime"]
-                        if currentStartTime:
-                            playTime = datetime.now() - currentStartTime # Calculate the time difference (playTime) between the start and end time of the activity
-                            self.timers[mem_before.name][self.current_date][mem_before.activity.name]["totalTime"] = self.timers[mem_before.name][self.current_date][mem_before.activity.name].get("totalTime", 0) + playTime.total_seconds() # Add the play time to the member's total play time for that activity for that day
-                        print("end:", self.timers) # printing the dictionary to see the updates after an activity is ended
-                        self.current_collection.replace_one({}, self.timers) # Update the MongoDB collection with the updated activity data(self.timers)
-
-    # This function is an asynchronous coroutine that runs indefinitely in the background when mem_after.activity is True.
-    # It is designed to update activity time information for a Discord member ('mem_after') whenever they start a new activity every 5 minutes.
-    async def timed_update(self, mem_before: discord.Member, mem_after: discord.Member):
-        await asyncio.sleep(300)
-        while not mem_before.activity and mem_after.activity:
-            playTime = 300 # add 5 mins to activity time
-            self.timers[mem_after.name][self.current_date][mem_after.activity.name]["totalTime"] = self.timers[mem_after.name][self.current_date][mem_after.activity.name].get("totalTime", 0) + playTime
-            self.timers[mem_after.name][self.current_date][mem_after.activity.name]["startTime"] = datetime.now()
-            print("in timed_update", self.timers) #printing the dictionary to see the timed updates
-            await asyncio.sleep(300)
+                if self.timed_task == None: #if task is finished create new task
+                    self.timed_task = asyncio.create_task(self._timed_update())
+                print("added:", mem_after.name)
             
+            if  mem_after.guild.id == self.members_online[mem_after.id]:
+                update_success = await self._update_now(mem_after)
+                print("start:", self.timers)
+        elif (mem_before.activity and not mem_after.activity) or (mem_before.status != mem_after.status and mem_after.status == discord.Status.offline): # activity stopped or member goes offline
+            if mem_before.id in self.members_online:
+                self.members_online.pop(mem_before.id)
+                print("removed:", mem_before.name)
+                if len(self.members_online) <= 0: #cancel the timed_task if no one is online and in an activity
+                    self.timed_task.cancel()    
+                    self.timed_task = None
+                    
+                before_string_id = str(mem_before.id)
+                if before_string_id in self.timers:
+                    if self.current_date in self.timers[before_string_id]:
+                        if mem_before.activity and mem_before.activity.name in self.timers[before_string_id][self.current_date]:
+                            currentStartTime = self.timers[before_string_id][self.current_date][mem_before.activity.name]["startTime"]
+                            self.timers[before_string_id][self.current_date][mem_before.activity.name]["startTime"] = None
+                            if currentStartTime:
+                                playTime = datetime.now() - currentStartTime # Calculate the time difference (playTime) between the start and end time of the activity
+                                self.timers[before_string_id][self.current_date][mem_before.activity.name]["totalTime"] = self.timers[before_string_id][self.current_date][mem_before.activity.name].get("totalTime", 0) + playTime.total_seconds() # Add the play time to the member's total play time for that activity for that day
+                            print("end:", self.timers) # printing the dictionary to see the updates after an activity is ended
+                            self.current_collection.replace_one({}, self.timers) # Update the MongoDB collection with the updated activity data(self.timers)
 
     # This is a Discord bot command that retrieves and displays activity time information for a given member.
     @commands.command()
-    async def get_info(self, member):
-        if member.author.name in self.timers:
-            channel = member.channel
+    async def get_info(self, ctx):
+        # Get the guild and necessary member information
+        guild = self.bot.get_guild(ctx.guild.id)
+        string_id = str(ctx.author.id)
+        member = guild.get_member(ctx.author.id)
+
+
+        # Update the member's information
+        update_success = await self._update_now(member)
+
+        # print("get info update:", self.timers)
+
+        # Replace the current collection with updated timers
+        self.current_collection.replace_one({}, self.timers)
+
+        if string_id in self.timers:
+            channel = ctx.channel
+            user = await self.bot.fetch_user(string_id)
             embed = discord.Embed(
-                title = f"{member.author.name}'s Time Information",
+                title = f"{user.name}'s Time Information",
                 color = discord.Color.blue()
             )
-            for date, activities in self.timers[member.author.name].items():
+
+            # Loop through the timers and activities to create fields in the embed
+            for date, activities in self.timers[string_id].items():
                 temp_string = " "
                 for activity, time in activities.items():
                     temp_time = time["totalTime"]
